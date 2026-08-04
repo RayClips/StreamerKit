@@ -1,52 +1,202 @@
-name: Build StreamerKit
+name: Build and release
+
+# StreamerKit is a WinUI 3 desktop app, so this only ever runs on a Windows runner —
+# the Windows App SDK targets do not exist on linux or macOS.
+#
+# Every push to main refreshes a rolling "latest" prerelease, so there is always something
+# downloadable without anyone having to do anything. Pushing a v* tag cuts a permanent
+# release instead. Pull requests build and get checked, but never publish a release.
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, master]
+    tags: ['v*']
   pull_request:
-    branches:
-      - main
+    branches: [main, master]
   workflow_dispatch:
 
+# Needed to create releases and upload assets.
 permissions:
-  contents: read
+  contents: write
+
+env:
+  PROJECT: LauncherWinUI/LauncherWinUI.csproj
+  CONFIGURATION: Release
 
 jobs:
   build:
-    name: Build and Test
     runs-on: windows-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # release notes are generated from commit history
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: '9.0.x'
 
-      - name: Restore dependencies
-        run: dotnet restore
+      # There is no lock file, so the key is the project file: the only place package
+      # versions are declared.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('LauncherWinUI/LauncherWinUI.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Work out the version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/v*') {
+            $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
+            $version = $tag -replace '^v', ''
+            $rolling = 'false'
+          } else {
+            # A rolling release keeps one tag and moves it, so main always has a download
+            # without filling the releases page with an entry per commit.
+            $tag = 'latest'
+            $version = "latest-$($env:GITHUB_SHA.Substring(0,7))"
+            $rolling = 'true'
+          }
+          Write-Host "tag=$tag version=$version rolling=$rolling"
+          "RELEASE_TAG=$tag"     | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "VERSION=$version"     | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "IS_ROLLING=$rolling"  | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Restore
+        run: dotnet restore $env:PROJECT
+        shell: pwsh
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: dotnet build $env:PROJECT -c $env:CONFIGURATION --no-restore
+        shell: pwsh
 
-      - name: Run tests
-        run: dotnet test --configuration Release --no-build --verbosity normal
+      # Two builds, because they suit different people and the project cannot be both at once.
+      #
+      # The framework-dependent one is the project's own configuration (~37 MB) and needs
+      # .NET 9 Desktop and Windows App Runtime 1.8 already installed. The self-contained one
+      # carries both (~213 MB) and runs on a machine with neither. Overriding on the command
+      # line rather than in the csproj keeps local publishes exactly as they were.
+      #
+      # Deliberately not --no-build: publish runs the MSIX-tooling targets that copy the
+      # compiled XAML and StreamerKit.pri into the output, and reusing a plain build's output
+      # risks skipping exactly the step the check below exists to catch.
+      - name: Publish (needs the runtimes installed)
+        shell: pwsh
+        run: dotnet publish $env:PROJECT -c $env:CONFIGURATION -o publish/framework-dependent --no-restore
 
-      - name: Publish Windows application
+      - name: Publish (self-contained)
+        shell: pwsh
         run: >
-          dotnet publish
-          --configuration Release
-          --runtime win-x64
-          --self-contained true
-          -p:PublishSingleFile=true
-          --output ./publish
+          dotnet publish $env:PROJECT -c $env:CONFIGURATION -o publish/self-contained --no-restore
+          -p:SelfContained=true -p:WindowsAppSDKSelfContained=true
 
-      - name: Upload build artifact
+      # The bug this repo has hit hardest: with EnableMsixTooling false, publish silently
+      # omits StreamerKit.pri and the app dies instantly with 0xC000027B — which looks exactly
+      # like a missing runtime. The build stays green while the output is broken, so it is
+      # worth asserting rather than trusting, and doubly so when the output is a download.
+      - name: Check both builds are complete
+        shell: pwsh
+        run: |
+          $required = @(
+            'StreamerKit.exe', 'StreamerKit.dll', 'StreamerKit.pri',
+            'Microsoft.WindowsAppRuntime.Bootstrap.dll',
+            'servers.json', 'platforms.json', 'integrations.json',
+            'plugins.json', 'actions.json', 'icons.json'
+          )
+          $failed = $false
+          foreach ($dir in 'publish/framework-dependent', 'publish/self-contained') {
+            $missing = $required | Where-Object { -not (Test-Path (Join-Path $dir $_)) }
+            if ($missing) {
+              $failed = $true
+              Write-Host "::error::$dir is incomplete."
+              $missing | ForEach-Object { Write-Host "::error::  missing $_" }
+            } else {
+              $files = Get-ChildItem $dir -Recurse -File
+              $size = [math]::Round(($files | Measure-Object Length -Sum).Sum / 1MB, 1)
+              Write-Host "$dir ok: $($files.Count) files, $size MB"
+            }
+          }
+          if ($failed) {
+            Write-Host 'If StreamerKit.pri is missing, check that EnableMsixTooling is still true in the csproj.'
+            exit 1
+          }
+
+      - name: Zip them
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Compress-Archive -Path 'publish/framework-dependent/*' `
+                           -DestinationPath "dist/StreamerKit-$env:VERSION-win-x64.zip"
+          Compress-Archive -Path 'publish/self-contained/*' `
+                           -DestinationPath "dist/StreamerKit-$env:VERSION-win-x64-self-contained.zip"
+          Get-ChildItem dist | ForEach-Object {
+            Write-Host ("{0}  {1} MB" -f $_.Name, [math]::Round($_.Length / 1MB, 1)) }
+
+      # Kept even for pull requests, where no release is published, so a PR build is still
+      # downloadable for testing.
+      - name: Upload as a workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StreamerKit-win-x64
-          path: ./publish
+          name: StreamerKit-${{ env.VERSION }}
+          path: dist/
           if-no-files-found: error
+          retention-days: 14
+
+      # Recreated rather than updated: moving a rolling tag and clobbering assets in place is
+      # fiddly and leaves stale files behind when a name changes. A versioned tag is only ever
+      # created once, so this is a no-op for it.
+      - name: Clear the previous rolling release
+        if: env.IS_ROLLING == 'true' && github.event_name != 'pull_request'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete $env:RELEASE_TAG --yes --cleanup-tag 2>$null
+          Write-Host 'Previous rolling release cleared (if there was one).'
+          exit 0
+
+      - name: Publish the release
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $notes = @"
+          **Which download do I want?**
+
+          | File | Size | Needs |
+          |---|---|---|
+          | ``StreamerKit-$env:VERSION-win-x64-self-contained.zip`` | ~213 MB | Nothing. Unzip and run. |
+          | ``StreamerKit-$env:VERSION-win-x64.zip`` | ~37 MB | .NET 9 Desktop Runtime and Windows App Runtime 1.8 |
+
+          If you are not sure, take the self-contained one.
+
+          Unzip somewhere writable and run ``StreamerKit.exe`` — settings, servers and actions
+          are read from JSON files next to it. Windows will warn about an unsigned app;
+          these builds are not code-signed.
+
+          Built from ``$env:GITHUB_SHA``.
+          "@
+          $notesFile = Join-Path $env:RUNNER_TEMP 'notes.md'
+          $notes | Out-File $notesFile -Encoding utf8
+
+          $argList = @('release', 'create', $env:RELEASE_TAG,
+                       '--target', $env:GITHUB_SHA,
+                       '--notes-file', $notesFile)
+
+          # Only --notes-file, never alongside --generate-notes: whether gh accepts both
+          # together varies by version, and a release step that fails on a flag combination
+          # is a poor way to find out. To get the commit list on tagged releases as well,
+          # add --generate-notes here and check it against the gh on the runner first.
+          if ($env:IS_ROLLING -eq 'true') {
+            $argList += @('--title', 'StreamerKit (latest from main)', '--prerelease')
+          } else {
+            $argList += @('--title', "StreamerKit $env:RELEASE_TAG")
+          }
+          $argList += (Get-ChildItem dist | ForEach-Object { $_.FullName })
+
+          & gh $argList
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
