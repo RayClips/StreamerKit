@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Spotify Now Playing",
+    "author": "AerisVisuals",
+    "description": "Track title, artist and album art as an OBS browser source. Reads straight from the desktop client.",
+    "version": "2.1.0",
+    "size": "310 KB",
+    "color": "#1DB954"
+  },
+  {
+    "name": "Chat Ticker",
+    "author": "AerisVisuals",
+    "description": "Scrolling chat overlay with badge and emote support for Twitch and YouTube.",
+    "version": "1.4.2",
+    "size": "180 KB",
+    "color": "#9146FF"
+  },
+  {
+    "name": "Alert Box Pack",
+    "author": "community",
+    "description": "Twelve follow, sub and raid animations with configurable sounds and hold times.",
+    "version": "3.0.1",
+    "size": "4.2 MB",
+    "color": "#F0596B"
+  },
+  {
+    "name": "Countdown Timer",
+    "author": "community",
+    "description": "Starting-soon and break countdowns that can be driven from chat commands.",
+    "version": "1.0.7",
+    "size": "96 KB",
+    "color": "#E3B341"
+  },
+  {
+    "name": "Stream Deck Bridge",
+    "author": "AerisVisuals",
+    "description": "Exposes every StreamerKit action as a Stream Deck button over the local websocket.",
+    "version": "0.9.3",
+    "size": "620 KB",
+    "color": "#60CDFF"
+  },
+  {
+    "name": "Follower Goal",
+    "author": "community",
+    "description": "Animated progress bar that fills toward a follower or sub target.",
+    "version": "2.2.0",
+    "size": "144 KB",
+    "color": "#3DD68C"
+  }
+]

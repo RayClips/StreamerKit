@@ -1,0 +1,20 @@
+[
+  {
+    "name": "AmusePro",
+    "subtitle": "Canvas video overlay",
+    "workingDirectory": "C:\\Users\\yusif\\Desktop\\AerisVisuals\\Custom\\AmusePro",
+    "command": "py",
+    "arguments": "-3 server.py --source spicetify",
+    "fallbackCommand": "python",
+    "fallbackArguments": "server.py --source spicetify",
+    "autoStart": false
+  },
+  {
+    "name": "AnimatedAdsPro",
+    "subtitle": "Ad rotator server",
+    "workingDirectory": "C:\\Users\\yusif\\Desktop\\AerisVisuals\\Custom\\AnimatedAdsPro",
+    "command": "node",
+    "arguments": "server.js",
+    "autoStart": false
+  }
+]

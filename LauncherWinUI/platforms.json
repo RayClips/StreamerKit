@@ -1,0 +1,31 @@
+[
+  {
+    "name": "Twitch",
+    "icon": "twitch",
+    "description": "Read your channel's chat and forward it to your overlays.",
+    "requirement": "",
+    "available": true,
+    "color": "#9146FF"
+  },
+  {
+    "name": "YouTube",
+    "icon": "youtube",
+    "description": "Login to your YouTube account, see your broadcasts, and alter settings.",
+    "requirement": "YouTube needs a Google API key and OAuth sign-in, which isn't built yet.",
+    "color": "#FF0033"
+  },
+  {
+    "name": "Kick",
+    "icon": "kick",
+    "description": "Read your channel's chat and forward it to your overlays.",
+    "requirement": "",
+    "available": true,
+    "color": "#53FC18"
+  },
+  {
+    "name": "TikTok",
+    "description": "Login to your TikTok account, and adjust settings.",
+    "requirement": "TikTok Live support isn't built yet.",
+    "color": "#25F4EE"
+  }
+]

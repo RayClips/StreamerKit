@@ -1,0 +1,33 @@
+[
+  {
+    "name": "OBS Studio",
+    "icon": "obs",
+    "description": "Switch scenes, toggle sources and react to stream events over obs-websocket.",
+    "requirement": "",
+    "available": true,
+    "color": "#302E31"
+  },
+  {
+    "name": "Discord",
+    "icon": "discord",
+    "description": "Read your Discord as a bot, and post messages, embeds and webhooks from actions.",
+    "requirement": "",
+    "available": true,
+    "color": "#5865F2"
+  },
+  {
+    "name": "Streamlabs",
+    "icon": "streamlabs",
+    "description": "Drive Streamlabs Desktop over its remote-control API — scenes, sources and stream control.",
+    "requirement": "",
+    "available": true,
+    "color": "#31C3A2"
+  },
+  {
+    "name": "Stream Deck",
+    "icon": "elgato",
+    "description": "Fire StreamerKit actions from hardware buttons.",
+    "requirement": "Needs a StreamerKit plugin for Stream Deck, which isn't built yet.",
+    "color": "#242424"
+  }
+]
