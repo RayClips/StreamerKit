@@ -1764,7 +1764,7 @@
             </Grid>
           </Border>
 
-          <TextBlock Text="Made by AerisVisuals" Style="{StaticResource CaptionTextBlockStyle}"
+          <TextBlock Text="Made by RayClips" Style="{StaticResource CaptionTextBlockStyle}"
                      Foreground="{ThemeResource TextFillColorTertiaryBrush}" Margin="2,0,0,0"/>
 
         </StackPanel>

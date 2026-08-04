@@ -1,7 +1,7 @@
 [
   {
     "name": "Spotify Now Playing",
-    "author": "AerisVisuals",
+    "author": "community",
     "description": "Track title, artist and album art as an OBS browser source. Reads straight from the desktop client.",
     "version": "2.1.0",
     "size": "310 KB",
@@ -9,7 +9,7 @@
   },
   {
     "name": "Chat Ticker",
-    "author": "AerisVisuals",
+    "author": "community",
     "description": "Scrolling chat overlay with badge and emote support for Twitch and YouTube.",
     "version": "1.4.2",
     "size": "180 KB",
@@ -33,7 +33,7 @@
   },
   {
     "name": "Stream Deck Bridge",
-    "author": "AerisVisuals",
+    "author": "community",
     "description": "Exposes every StreamerKit action as a Stream Deck button over the local websocket.",
     "version": "0.9.3",
     "size": "620 KB",
