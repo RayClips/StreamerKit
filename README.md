@@ -1,65 +1,112 @@
-# 🎥 StreamerKit
+# StreamerKit
 
 <img src="./assests/icon.png" align="right" alt="StreamerKit icon" title="StreamerKit icon" width="120">
 
-[![GitHub stars](https://img.shields.io/github/stars/viix0dev/Masked?style=social)](https://github.com/viix0dev/Masked)
-[![License: MIT](https://img.shields.io/badge/License-MIT-orange.svg)](https://github.com/viix0dev/Masked/blob/main/LICENSE)
+[![Build and release](https://github.com/RayClips/StreamerKit/actions/workflows/build.yml/badge.svg)](https://github.com/AerisVisuals/StreamerKit/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/RayClips/StreamerKit?include_prereleases&label=download)](https://github.com/AerisVisuals/StreamerKit/releases)
+![Platform](https://img.shields.io/badge/platform-Windows%2011%20%2F%2010%201809%2B-0078D4)
+![Status](https://img.shields.io/badge/status-alpha-orange)
 
-**StreamerKit** is a free, lightweight, and open-source server and plugin manager built for **content creators and streamers**.
+**StreamerKit** is a free Windows desktop app that starts, watches and restarts the local
+servers behind your OBS overlays, reads Twitch/Kick/Discord chat, and re-broadcasts
+everything over a WebSocket server that speaks the **Streamer.bot protocol** - so overlay
+widgets built on `@streamerbot/client` connect to StreamerKit exactly as if it were
+Streamer.bot.
 
-It provides a simple way to download, configure, manage, and run OBS-related plugins created by **RayClips**, without requiring users to manually install Python, Node.js, or additional dependencies.
+It's built with **WinUI 3** - real Windows 11 Fluent controls, not a themed web view.
 
-With its clean interface and built-in process management, StreamerKit makes running plugin servers as easy as **Download & Start**.
-
----
-
-## 💡 The Problem and the Solution
-
-Many streaming tools, sources, and plugins rely on Python or Node.js servers. Running these servers manually can create several problems:
-
-* **Required software and dependencies:** Users may need to install Node.js, Python, `node_modules`, or additional Python packages.
-* **Server crashes:** A plugin server may crash or experience memory leaks without the streamer noticing until viewers report that something is broken.
-* **Forgotten startup:** Streamers may forget to start one or more plugin servers before going live.
-* **Complicated setup:** Managing multiple terminals, commands, folders, and configuration files can be confusing and time-consuming.
-
-### How StreamerKit Solves It
-
-StreamerKit distributes supported plugins as standalone executables, so you do not need to manually install programming languages, packages, or other development tools.
-
-It can monitor running plugin servers, record errors, and automatically restart a server if it crashes. You can also enable automatic startup for selected plugins, helping ensure that everything is ready before your stream begins.
-
-In simple terms, StreamerKit helps keep your streaming tools running while you focus on creating content.
+> **Alpha software.** Things will change and break. If something's off, that's worth
+> reporting, not assuming is expected.
 
 ---
 
-## ✨ Key Features
+## What it actually does
 
-* 📦 **One-Click Plugin Installation:** Download and install supported plugins directly through StreamerKit.
-* ▶️ **Simple Server Controls:** Start, stop, and restart plugin servers from one clean interface.
-* 🔄 **Automatic Crash Recovery:** Detects crashed servers and restarts them automatically.
-* 🚀 **Automatic Startup:** Configure selected plugin servers to launch automatically with StreamerKit.
-* 📋 **Centralized Logs:** View server output, errors, and crash information without opening multiple terminal windows.
-* 🧩 **Plugin Management:** Keep all supported RayClips plugins organized in one place.
-* 🛠️ **No Development Setup Required:** Run supported plugins without manually installing Python, Node.js, or package dependencies.
-* ⚡ **Lightweight and Easy to Use:** Designed to stay out of the way while you stream.
-* 🔓 **Free and Open Source:** StreamerKit is available under the MIT License and can be reviewed, modified, and contributed to by the community.
+Streamers running browser-source overlays end up with a pile of `.bat` files, one console
+window per server, URLs copied by hand into OBS, and no idea a server died until a viewer
+says the overlay's gone blank. StreamerKit replaces that with one window:
 
----
+- **Runs your servers.** Start, stop, and watch the output of every local server from one
+  place — the ones StreamerKit hosts itself (HTTP / WebSocket / UDP) and external programs
+  it supervises as child processes.
+- **Restarts what crashes.** A server that exits unexpectedly comes back on its own, with
+  backoff (2s → 5s → 10s → 20s → 30s) so a genuinely broken server surfaces instead of
+  looping forever. Every crash is logged with the last lines of output.
+- **Reads chat.** Twitch and Kick, anonymously — no account or OAuth needed — plus Discord
+  through a bot you provide the token for. All three normalize to the same message shape,
+  so a chat trigger doesn't care which platform it came from.
+- **Talks to OBS, Streamlabs and Discord.** Connects to OBS over obs-websocket, to
+  Streamlabs Desktop over its remote-control API, and to Discord as a bot (gateway +
+  REST) — switch scenes, show/hide sources, send messages and embeds, all from one app.
+- **Runs actions.** A trigger-and-steps automation engine: chat commands, mouse regions,
+  hotkeys, timers, server state changes, and "the stream just started" from OBS or
+  Streamlabs — wired to steps like switching an OBS/Streamlabs scene, sending a Discord
+  message, hitting an HTTP endpoint, or broadcasting a custom event to your overlays.
+- **Speaks Streamer.bot's protocol**, so overlay widgets built for Streamer.bot
+  (Nutty's, and anything on `@streamerbot/client`) connect to StreamerKit without
+  modification.
+- **Stays out of the way when closed.** Every server StreamerKit launches lives in a
+  Windows job object, so closing — or even force-killing — StreamerKit takes every child
+  process with it. Nothing is left holding a port.
+- **Starts with Windows, if you want.** A per-user registry entry, no admin rights, no
+  scheduled task — and each chat platform or integration can be set to connect
+  automatically on launch, independently of the others.
 
-## 🛠️ Who Is This For?
+## What it's honestly *not* yet
 
-StreamerKit is designed for:
+These are shown in the app with a warning banner, on purpose — nothing here is hidden:
 
-* **Streamers** who use OBS plugins powered by local servers.
-* **Content creators** who want a simple way to manage their streaming tools.
-* **Non-technical users** who do not want to install Python, Node.js, or command-line dependencies.
-* **Creators using multiple plugins** who want to control everything from one application.
-* **Streamers who need reliability** and want crashed plugin servers to restart automatically.
-* **RayClips plugin users** looking for the easiest way to install and run supported tools.
-* **Developers and contributors** interested in improving an open-source toolkit for the streaming community.
+- **The Plugins page is a mock.** A sample catalogue with a fake progress bar; nothing
+  downloads or installs. It's there to preview the shape of the feature.
+- **YouTube and TikTok chat aren't built.** Listed on the Platforms page as disabled,
+  with the reason shown on screen.
+- **Stream Deck isn't built.** Listed on the Integrations page the same way.
+- **No follows, subs, bits or raid events.** Those need OAuth and EventSub, which don't
+  exist yet — chat is read-only for now.
 
----
+## Docs
 
-## 📜 License
+**[Official Docs](https://github.com/RayClips/StreamerKit/wiki)**<br>
+**[Website](https://streamerkit.rayclips.lol)**
 
-StreamerKit is free and open-source software licensed under the [MIT License](LICENSE).
+## Download
+
+Grab the latest build from **[Releases](https://github.com/AerisVisuals/StreamerKit/releases)**
+— every push to `main` publishes one automatically. Two options:
+
+| | Size | Needs |
+|---|---|---|
+| **Self-contained** | ~86 MB download | Nothing — unzip and run |
+| **Framework-dependent** | ~11 MB download | [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0) + Windows App Runtime 1.8 |
+
+If you're not sure which, take the self-contained one. Unzip anywhere writable and run
+`StreamerKit.exe` — it's portable, no installer, no admin rights.
+
+Requires Windows 11, or Windows 10 1809+, 64-bit.
+
+## Building from source
+
+```bash
+dotnet publish LauncherWinUI/LauncherWinUI.csproj -c Release -o App
+```
+
+That's the only supported way to update `App/` — always publish, don't hand-copy files.
+
+## Configuration
+
+Everything lives in plain JSON next to the exe, so most changes don't need a rebuild:
+`servers.json`, `settings.json`, `platforms.json`, `integrations.json`, `actions.json`,
+`plugins.json`. Add a server by editing `servers.json` — any program that prints a
+`http(s)://…` URL to its own output works, Node, Python, or anything else.
+
+## Contributing
+
+Issues and PRs are welcome. There's no test suite this app is verified by running it
+and driving it through its actual UI, and the README explain
+why.
+
+## License
+
+No license has been chosen for this repository yet — all rights reserved by default
+until one is added. If you're the maintainer and want this open for reuse, add a
+`LICENSE` file and update this section.
