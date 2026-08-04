@@ -106,7 +106,4 @@ and driving it through its actual UI, and the README explain
 why.
 
 ## License
-
-No license has been chosen for this repository yet — all rights reserved by default
-until one is added. If you're the maintainer and want this open for reuse, add a
-`LICENSE` file and update this section.
+[**MIT License**](https://github.com/RayClips/StreamerKit/blob/main/LICENSE)
