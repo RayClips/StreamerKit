@@ -1,0 +1,26 @@
+﻿<Application
+    x:Class="StreamerKit.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls"/>
+      </ResourceDictionary.MergedDictionaries>
+
+      <!-- Card-shaped click target, built on the stock Fluent button so it keeps
+           the real hover / pressed / focus visuals. -->
+      <Style x:Key="CardButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="16,14"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+      </Style>
+
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>
+
