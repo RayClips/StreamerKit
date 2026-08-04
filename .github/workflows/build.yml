@@ -95,14 +95,20 @@ jobs:
       # Deliberately not --no-build: publish runs the MSIX-tooling targets that copy the
       # compiled XAML and StreamerKit.pri into the output, and reusing a plain build's output
       # risks skipping exactly the step the check below exists to catch.
+      # This one matches the properties the restore step already ran with, so --no-restore
+      # is safe here.
       - name: Publish (needs the runtimes installed)
         shell: pwsh
         run: dotnet publish $env:SK_PROJECT -c $env:SK_CONFIG -o publish/framework-dependent --no-restore
 
+      # This one must NOT say --no-restore. SelfContained changes which packages are needed:
+      # the earlier restore ran with the project's default of false, so the win-x64 runtime
+      # pack was never downloaded and publish fails with NETSDK1112. Flipping the property at
+      # publish time only works if restore sees it too.
       - name: Publish (self-contained)
         shell: pwsh
         run: >
-          dotnet publish $env:SK_PROJECT -c $env:SK_CONFIG -o publish/self-contained --no-restore
+          dotnet publish $env:SK_PROJECT -c $env:SK_CONFIG -o publish/self-contained
           -p:SelfContained=true -p:WindowsAppSDKSelfContained=true
 
       # The bug this repo has hit hardest: with EnableMsixTooling false, publish silently
@@ -179,10 +185,10 @@ jobs:
           $notes = @"
           **Which download do I want?**
 
-          | File | Size | Needs |
-          |---|---|---|
-          | ``StreamerKit-$env:SK_NAME-win-x64-self-contained.zip`` | ~213 MB | Nothing. Unzip and run. |
-          | ``StreamerKit-$env:SK_NAME-win-x64.zip`` | ~37 MB | .NET 9 Desktop Runtime and Windows App Runtime 1.8 |
+          | File | Download | Unzipped | Needs |
+          |---|---|---|---|
+          | ``StreamerKit-$env:SK_NAME-win-x64-self-contained.zip`` | ~86 MB | ~213 MB | Nothing. Unzip and run. |
+          | ``StreamerKit-$env:SK_NAME-win-x64.zip`` | ~11 MB | ~38 MB | .NET 9 Desktop Runtime and Windows App Runtime 1.8 |
 
           If you are not sure, take the self-contained one.
 
