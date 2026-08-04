@@ -2,8 +2,8 @@
 
 <img src="./assests/icon.png" align="right" alt="StreamerKit icon" title="StreamerKit icon" width="120">
 
-[![Build and release](https://github.com/RayClips/StreamerKit/actions/workflows/build.yml/badge.svg)](https://github.com/AerisVisuals/StreamerKit/actions/workflows/build.yml)
-[![Latest release](https://img.shields.io/github/v/release/RayClips/StreamerKit?include_prereleases&label=download)](https://github.com/AerisVisuals/StreamerKit/releases)
+[![Build and release](https://github.com/RayClips/StreamerKit/actions/workflows/build.yml/badge.svg)](https://github.com/RayClips/StreamerKit/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/RayClips/StreamerKit?include_prereleases&label=download)](https://github.com/RayClips/StreamerKit/releases)
 ![Platform](https://img.shields.io/badge/platform-Windows%2011%20%2F%2010%201809%2B-0078D4)
 ![Status](https://img.shields.io/badge/status-alpha-orange)
 
@@ -71,7 +71,7 @@ These are shown in the app with a warning banner, on purpose — nothing here is
 
 ## Download
 
-Grab the latest build from **[Releases](https://github.com/AerisVisuals/StreamerKit/releases)**
+Grab the latest build from **[Releases](https://github.com/RayClips/StreamerKit/releases)**
 — every push to `main` publishes one automatically. Two options:
 
 | | Size | Needs |
