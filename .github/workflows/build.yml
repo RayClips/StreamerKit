@@ -19,9 +19,14 @@ on:
 permissions:
   contents: write
 
+# Every one of these is prefixed SK_ on purpose. MSBuild reads environment variables as
+# properties, so a plain VERSION becomes $(Version) and restore dies with
+# "'latest-7331b54' is not a valid version string" before any of this workflow's own logic
+# runs. CONFIGURATION would silently become $(Configuration) the same way. Prefixing keeps
+# them out of MSBuild's namespace entirely.
 env:
-  PROJECT: LauncherWinUI/LauncherWinUI.csproj
-  CONFIGURATION: Release
+  SK_PROJECT: LauncherWinUI/LauncherWinUI.csproj
+  SK_CONFIG: Release
 
 jobs:
   build:
@@ -32,10 +37,17 @@ jobs:
         with:
           fetch-depth: 0        # release notes are generated from commit history
 
+      # global.json pins this to the 9.0 SDK. Without it the runner uses whatever newest SDK
+      # it happens to ship with (10.0.302 at time of writing) regardless of what is requested
+      # here, which is not what the app is developed against.
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
+
+      - name: Show the SDK actually in use
+        shell: pwsh
+        run: dotnet --version
 
       # There is no lock file, so the key is the project file: the only place package
       # versions are declared.
@@ -51,26 +63,26 @@ jobs:
         run: |
           if ($env:GITHUB_REF -like 'refs/tags/v*') {
             $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
-            $version = $tag -replace '^v', ''
+            $name = $tag -replace '^v', ''
             $rolling = 'false'
           } else {
             # A rolling release keeps one tag and moves it, so main always has a download
             # without filling the releases page with an entry per commit.
             $tag = 'latest'
-            $version = "latest-$($env:GITHUB_SHA.Substring(0,7))"
+            $name = "latest-$($env:GITHUB_SHA.Substring(0,7))"
             $rolling = 'true'
           }
-          Write-Host "tag=$tag version=$version rolling=$rolling"
-          "RELEASE_TAG=$tag"     | Out-File $env:GITHUB_ENV -Append -Encoding utf8
-          "VERSION=$version"     | Out-File $env:GITHUB_ENV -Append -Encoding utf8
-          "IS_ROLLING=$rolling"  | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "tag=$tag name=$name rolling=$rolling"
+          "SK_TAG=$tag"          | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "SK_NAME=$name"        | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "SK_ROLLING=$rolling"  | Out-File $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Restore
-        run: dotnet restore $env:PROJECT
+        run: dotnet restore $env:SK_PROJECT
         shell: pwsh
 
       - name: Build
-        run: dotnet build $env:PROJECT -c $env:CONFIGURATION --no-restore
+        run: dotnet build $env:SK_PROJECT -c $env:SK_CONFIG --no-restore
         shell: pwsh
 
       # Two builds, because they suit different people and the project cannot be both at once.
@@ -85,12 +97,12 @@ jobs:
       # risks skipping exactly the step the check below exists to catch.
       - name: Publish (needs the runtimes installed)
         shell: pwsh
-        run: dotnet publish $env:PROJECT -c $env:CONFIGURATION -o publish/framework-dependent --no-restore
+        run: dotnet publish $env:SK_PROJECT -c $env:SK_CONFIG -o publish/framework-dependent --no-restore
 
       - name: Publish (self-contained)
         shell: pwsh
         run: >
-          dotnet publish $env:PROJECT -c $env:CONFIGURATION -o publish/self-contained --no-restore
+          dotnet publish $env:SK_PROJECT -c $env:SK_CONFIG -o publish/self-contained --no-restore
           -p:SelfContained=true -p:WindowsAppSDKSelfContained=true
 
       # The bug this repo has hit hardest: with EnableMsixTooling false, publish silently
@@ -129,9 +141,9 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
           Compress-Archive -Path 'publish/framework-dependent/*' `
-                           -DestinationPath "dist/StreamerKit-$env:VERSION-win-x64.zip"
+                           -DestinationPath "dist/StreamerKit-$env:SK_NAME-win-x64.zip"
           Compress-Archive -Path 'publish/self-contained/*' `
-                           -DestinationPath "dist/StreamerKit-$env:VERSION-win-x64-self-contained.zip"
+                           -DestinationPath "dist/StreamerKit-$env:SK_NAME-win-x64-self-contained.zip"
           Get-ChildItem dist | ForEach-Object {
             Write-Host ("{0}  {1} MB" -f $_.Name, [math]::Round($_.Length / 1MB, 1)) }
 
@@ -140,21 +152,21 @@ jobs:
       - name: Upload as a workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: StreamerKit-${{ env.VERSION }}
+          name: StreamerKit-${{ env.SK_NAME }}
           path: dist/
           if-no-files-found: error
           retention-days: 14
 
       # Recreated rather than updated: moving a rolling tag and clobbering assets in place is
       # fiddly and leaves stale files behind when a name changes. A versioned tag is only ever
-      # created once, so this is a no-op for it.
+      # created once, so this does nothing for it.
       - name: Clear the previous rolling release
-        if: env.IS_ROLLING == 'true' && github.event_name != 'pull_request'
+        if: env.SK_ROLLING == 'true' && github.event_name != 'pull_request'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete $env:RELEASE_TAG --yes --cleanup-tag 2>$null
+          gh release delete $env:SK_TAG --yes --cleanup-tag 2>$null
           Write-Host 'Previous rolling release cleared (if there was one).'
           exit 0
 
@@ -169,8 +181,8 @@ jobs:
 
           | File | Size | Needs |
           |---|---|---|
-          | ``StreamerKit-$env:VERSION-win-x64-self-contained.zip`` | ~213 MB | Nothing. Unzip and run. |
-          | ``StreamerKit-$env:VERSION-win-x64.zip`` | ~37 MB | .NET 9 Desktop Runtime and Windows App Runtime 1.8 |
+          | ``StreamerKit-$env:SK_NAME-win-x64-self-contained.zip`` | ~213 MB | Nothing. Unzip and run. |
+          | ``StreamerKit-$env:SK_NAME-win-x64.zip`` | ~37 MB | .NET 9 Desktop Runtime and Windows App Runtime 1.8 |
 
           If you are not sure, take the self-contained one.
 
@@ -183,7 +195,7 @@ jobs:
           $notesFile = Join-Path $env:RUNNER_TEMP 'notes.md'
           $notes | Out-File $notesFile -Encoding utf8
 
-          $argList = @('release', 'create', $env:RELEASE_TAG,
+          $argList = @('release', 'create', $env:SK_TAG,
                        '--target', $env:GITHUB_SHA,
                        '--notes-file', $notesFile)
 
@@ -191,10 +203,10 @@ jobs:
           # together varies by version, and a release step that fails on a flag combination
           # is a poor way to find out. To get the commit list on tagged releases as well,
           # add --generate-notes here and check it against the gh on the runner first.
-          if ($env:IS_ROLLING -eq 'true') {
+          if ($env:SK_ROLLING -eq 'true') {
             $argList += @('--title', 'StreamerKit (latest from main)', '--prerelease')
           } else {
-            $argList += @('--title', "StreamerKit $env:RELEASE_TAG")
+            $argList += @('--title', "StreamerKit $env:SK_TAG")
           }
           $argList += (Get-ChildItem dist | ForEach-Object { $_.FullName })
 
