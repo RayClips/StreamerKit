@@ -76,7 +76,7 @@ Grab the latest build from **[Releases](https://github.com/RayClips/StreamerKit/
 
 | | Size | Needs |
 |---|---|---|
-| **Self-contained** | ~86 MB download | Nothing — unzip and run |
+| **Self-contained** | ~86 MB download | Nothing |
 | **Framework-dependent** | ~11 MB download | [.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0) + Windows App Runtime 1.8 |
 
 If you're not sure which, take the self-contained one. Unzip anywhere writable and run
